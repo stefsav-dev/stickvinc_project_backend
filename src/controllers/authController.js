@@ -1,54 +1,123 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const mahasiswa = require("../models/mahasiswaModels");
+const mahasiswaModel = require("../models/mahasiswaModels");
+const adminModel = require("../models/adminModels");
 
 exports.register = async (req,res) => {
     try {
-    const {email, password} = req.body;
+        const { email, password, role } = req.body;
 
-    const mahasiswaExists = mahasiswa.findMahasiswaByEmail(u => u.email === email);
+        if (role !== "mahasiswa") {
+            return res.status(400)
+            .json({ message : "Hanya role mahasiswa yang bisa register "});
+        }
 
-    if (mahasiswaExists) {
-        return res.status(400).json({ message : "Data Mahasiswa already exists"});
-    }
+        const mahasiswaExists = await mahasiswaModel.findMahasiswaByEmail(email);
+        if (mahasiswaExists) {
+            return res.status(400).json({ message : "Email sudah terdaftar"});
+        }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        
-        await mahasiswa.createMahasiswa(email, hashedPassword);
+        await mahasiswaModel.createMahasiswa(email, hashedPassword, role);
 
-        res.status(201).json({ message : "Registrasi user berhasil"});
+        res.status(201).json({ message : "Registrasi mahasiswa berhasil"})
+
     } catch (error) {
-        res.status(500).json({ message : error.message});
+        res.status(500).json({
+            message: error.message
+        });
     }
 };
 
 exports.login = async (req,res) => {
     try {
-        const {email, password} = req.body;
+        const { email, password, role } = req.body;
 
-        const mahasiswa = await mahasiswa.findMahasiswaByEmail(email);
-        if (!mahasiswa) {
-            return res.status(400).json({ message : "Invalid credentials"});
+        let user = null;
+        let userModel = null;
+
+        if (role === "mahasiswa") {
+            user = await mahasiswaModel.findMahasiswaByEmail(email);
+            userModel = mahasiswaModel;
+        } else if (role === "admin") {
+            user = await adminModel.findAdminByEmail(email);
+            userModel = adminModel;
+        } else {
+            return res.status(400).json(
+                { message : "Role tidak valid" }
+            )
         }
 
-        const isMatch = await bcrypt.compare(password, mahasiswa.password);
+        if (!user) {
+            return res.status(400).json({
+                message : "Email tidak ditemukan"
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res(400).json({ message : "Invalid password"});
+            return res.status(400).json({
+                message : "Password Salah"
+            });
         }
 
         const token = jwt.sign(
-            {id: mahasiswa.id, email: mahasiswa.email},
+            {
+                id: user.id,
+                email: user.email,
+                role: role
+            },
             process.env.JWT_SECRET,
-            {expiresIn: "1h"}
+            { expiresIn: "1h" }
         );
 
-        res.json({token});
+        res.json({
+            message: "Login Berhasil",
+            token: token,
+            user : {
+                id: user.id,
+                email: user.email,
+                role: role
+            }
+        });
 
     } catch (error) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({
+            message: error.message
+        });
+    }
+};  
+
+
+exports.profile = async (req,res) => {
+    try {
+        const { id, role } = req.user;
+        let user = null;
+
+        if (role === "mahasiswa") {
+            user = await mahasiswaModel.findMahasiswaByid(id);
+        } else if (role === "admin") {
+            user = await adminModel.findAdminById(id);
+        }
+
+        if (!user) {
+            return res.status(404).json({
+                message : "User tidak ditemukan"
+            });
+        }
+
+        res.json({
+            message :  `Welcome ${user.email}`,
+            user : {
+                id: user.id,
+                email: user.email,
+                role: role
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: error.message
+        });
     }
 };
-
-exports.profile = (req,res) => {
-    res.json({ message: `Welcome ${req.mahasiswa.email}`, user: req.mahasiswa });
-}

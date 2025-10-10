@@ -1,9 +1,9 @@
 const pool = require("../config/database");
 
-const createMahasiswa = async(email,hashedPassword) => {
+const createMahasiswa = async(email,hashedPassword, role = "mahasiswa") => {
     const [result] = await pool.query(
-        "INSERT INTO mahasiswa (email,password) VALUES (?,?)",
-        [email, hashedPassword]
+        "INSERT INTO mahasiswa (email,password,role) VALUES (?,?,?)",
+        [email, hashedPassword, role]
     );
     return result;
 }
@@ -16,4 +16,12 @@ const findMahasiswaByEmail = async (email) => {
     return rows[0];
 }
 
-module.exports = {createMahasiswa, findMahasiswaByEmail};
+const findMahasiswaByid = async (id) => {
+    const [rows] = await pool.query(
+        "SELECT * FROM mahasiswa WHERE id = ?",
+        [id]
+    )
+    return rows[0];
+}
+
+module.exports = {createMahasiswa, findMahasiswaByEmail, findMahasiswaByid};
