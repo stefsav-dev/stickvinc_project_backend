@@ -1,8 +1,8 @@
-const pool = require("../config/database");
+const  pool  = require("../../config/database");
 
 const findPetugasPerpustakaanByEmail = async (email) => {
     const [rows] = await pool.query(
-        "SELECT * FROM petugas_perpustakaan WHERE email = ?",
+        "SELECT * FROM petugas_perpustakaan WHERE email = ?", 
         [email]
     );
     return rows[0];
@@ -10,8 +10,9 @@ const findPetugasPerpustakaanByEmail = async (email) => {
 
 const findPetugasPerpustakaanById = async (id) => {
     const [rows] = await pool.query(
-        "SELECT * FROM petugas_perpustakaan WHERE id = ?", [id]
-    );
+        "SELECT * FROM petugas_perpustakaaN WHERE id = ?",
+        [id]
+    ); 
     return rows[0];
 }
 
