@@ -140,7 +140,7 @@ exports.createAdmin = async (req,res) => {
 };
 
 
-//data mahasiswa controller
+//route mahasiswa controller
 exports.getAllDataMahasiswa = async (req,res) => {
     try {
         const pool = require("../../config/database");
